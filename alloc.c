@@ -16,12 +16,13 @@ void* mymalloc(size_t size){
 }
 
 void* mycalloc(size_t nmemb, size_t size){
-  if (nmemb == 0) {
+  if (nmemb == 0 || size == 0){
     return NULL;
+  } else if ((size % BYTE) != 0){
+    size = (size - (size % BYTE) + BYTE);
   }
 
-  size = size * nmemb;
-  void* return_pointer = sbrk(size);
+  void* return_pointer = sbrk(size * nmemb);
   memset(return_pointer, 0, size);
 
   return return_pointer;
