@@ -3,23 +3,43 @@
 #include <string.h>
 #include <unistd.h>
 
-void *mymalloc(size_t size)
-{
+#define BYTE 8
+
+void* mymalloc(size_t size){
+  if (size == 0){
     return NULL;
+  } else if ((size % BYTE) != 0){
+    size = (size - (size % BYTE) + BYTE);
+  }
+
+  return sbrk(size);
 }
 
-void *mycalloc(size_t nmemb, size_t size)
-{
+void* mycalloc(size_t nmemb, size_t size){
+  if (nmemb == 0) {
     return NULL;
+  }
+
+  size = size * nmemb;
+  void* return_pointer = sbrk(size);
+  memset(return_pointer, 0, size);
+
+  return return_pointer;
 }
 
-void myfree(void *ptr)
-{
+void myfree(void* ptr){
+  if (ptr == NULL) {
+    printf("Yeet");
+  }
 }
 
-void *myrealloc(void *ptr, size_t size)
-{
+void* myrealloc(void *ptr, size_t size){
+  if (ptr == NULL) {
     return NULL;
+  } else if (size){
+    return NULL;
+  }
+  return NULL;
 }
 
 
