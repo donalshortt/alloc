@@ -3,35 +3,53 @@
 #include <string.h>
 #include <unistd.h>
 
-#define BYTE 8
+#define WORD 8
+#define WORD_ALIGN (size - (size % WORD) + WORD);
+
+typedef struct metadata_block_t {
+  size_t size;
+} metadata_block;
+
+typedef struct free_metadata_block_t {
+  size_t size;
+  struct free_metadata_block_t* prev;
+} free_block;
+
+void insert_metadata(size_t size){
+  metadata_block* metadata = (metadata_block*)sbrk(WORD);
+  metadata->size = size;
+}
 
 void* mymalloc(size_t size){
+  insert_metadata(size);
+
   if (size == 0){
     return NULL;
-  } else if ((size % BYTE) != 0){
-    size = (size - (size % BYTE) + BYTE);
+  } else if ((size % WORD) != 0){
+    size = WORD_ALIGN;
   }
 
   return sbrk(size);
 }
 
 void* mycalloc(size_t nmemb, size_t size){
+  void* return_pointer = NULL;
+
   if (nmemb == 0 || size == 0){
     return NULL;
-  } else if ((size % BYTE) != 0){
-    size = (size - (size % BYTE) + BYTE);
+  } else if ((size % WORD) != 0){
+    size = WORD_ALIGN;
   }
 
-  void* return_pointer = sbrk(size * nmemb);
+  return_pointer = sbrk(size * nmemb);
   memset(return_pointer, 0, size);
 
   return return_pointer;
 }
 
 void myfree(void* ptr){
-  if (ptr == NULL) {
-    printf("Yeet");
-  }
+  //QUESTION: This doesn't work but the idea is good i think - how do i make it work?
+  size_t size = (ptr - WORD)->size;
 }
 
 void* myrealloc(void *ptr, size_t size){
