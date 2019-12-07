@@ -3,20 +3,22 @@
 #include <string.h>
 #include <unistd.h>
 
+typedef struct metadata_block {
+  size_t size;
+} metadata_block_t;
+
+typedef struct free_metadata_block {
+  size_t size;
+  struct free_metadata_block* prev;
+} free_block_t;
+
+free_block_t* head = NULL;
+
 #define WORD 8
 #define WORD_ALIGN (size - (size % WORD) + WORD);
 
-typedef struct metadata_block_t {
-  size_t size;
-} metadata_block;
-
-typedef struct free_metadata_block_t {
-  size_t size;
-  struct free_metadata_block_t* prev;
-} free_block;
-
 void insert_metadata(size_t size){
-  metadata_block* metadata = (metadata_block*)sbrk(WORD);
+  metadata_block_t* metadata = (metadata_block_t*)sbrk(WORD);
   metadata->size = size;
 }
 
@@ -48,8 +50,12 @@ void* mycalloc(size_t nmemb, size_t size){
 }
 
 void myfree(void* ptr){
-  //QUESTION: This doesn't work but the idea is good i think - how do i make it work?
-  size_t size = (ptr - WORD)->size;
+  metadata_block_t* block = (ptr - WORD);
+  size_t size = block->size;
+
+  free_metadata_block_t* current = head;
+  while ()
+  head->
 }
 
 void* myrealloc(void *ptr, size_t size){
