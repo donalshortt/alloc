@@ -58,4 +58,5 @@ alloc.o: alloc.c /usr/include/stdc-predef.h /usr/include/stdlib.h \
  /usr/include/x86_64-linux-gnu/bits/confname.h \
  /usr/include/x86_64-linux-gnu/bits/getopt_posix.h \
  /usr/include/x86_64-linux-gnu/bits/getopt_core.h \
- /usr/include/x86_64-linux-gnu/bits/unistd.h
+ /usr/include/x86_64-linux-gnu/bits/unistd.h \
+ /usr/lib/gcc/x86_64-linux-gnu/7/include/stdbool.h
