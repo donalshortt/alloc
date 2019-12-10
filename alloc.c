@@ -6,49 +6,71 @@
 
 typedef struct metadata_block {
   size_t size;
-  size_t bepis;
+  _Bool is_free;
+  struct metadata_block* next;
+  struct metadata_block* prev;
 } metadata_block_t;
 
 typedef struct free_metadata_block {
-  size_t size;
   void* addr;
   struct free_metadata_block* next;
-  struct free_metadata_block* prev;
 } free_block_t;
 
-free_block_t* head;
-_Bool head_init_flag = false;
+metadata_block_t* metadata_head;
+free_block_t* free_head;
+_Bool metadata_head_init_flag = false;
+_Bool free_head_init_flag = false;
 
 #define WORD 8
 #define WORD_ALIGN (size - (size % WORD) + WORD);
 
-void insert_metadata(size_t size) {
-  // void** metadata_pointer = (void**)sbrk(WORD);
-  // metadata_block_t* metadata = (metadata_block_t*)brk(sizeof(metadata_block_t));
-  //metadata->size = size;
-  //void* test_metadata = sbrk(WORD);
+void init_metadata_head(size_t size) {
+  metadata_head_init_flag = true;
+  metadata_head = (metadata_block_t*)sbrk(sizeof(metadata_block_t));
+  metadata_head->size = size;
+  metadata_head->is_free = false;
+  metadata_head->next = NULL;
+  metadata_head->prev = NULL;
 }
 
-void remove_block(free_block_t* block) {
-  block->prev->next = block->next;
-  block->next->prev = block->prev;
+void insert_metadata(size_t size) {
+  if (!metadata_head_init_flag) {
+    init_metadata_head(size);
+    return;
+  }
+
+  metadata_block_t* current = metadata_head;
+
+  while (current->next != NULL) {
+    current = current->next;
+  }
+
+  current->next = (metadata_block_t*)sbrk(sizeof(metadata_block_t));
+  metadata_head->next->size = size;
+  metadata_head->next->is_free = false;
+  metadata_head->next->next = NULL;
+  metadata_head->next->prev = current;
 }
+
+// void remove_block(free_block_t* block) {
+//   block->prev->next = block->next;
+//   block->next->prev = block->prev;
+// }
 
 void* search_free_blocks(size_t size) {
-  free_block_t* current = head;
+  free_block_t* current = free_head;
 
-  // while (current->next != NULL) {
-  //   if (current->size >= size) {
-  //     remove_block(current);
-  //     return current->addr;
-  //   }
-  //   current = current->next;
-  // }
+  while (current->next != NULL) {
+    metadata_block_t* current_metadata = current->addr - sizeof(metadata_block_t);
+    if (current_metadata->size >= size) {
+      return current_metadata + sizeof(metadata_block_t);
+    }
+  }
   return NULL;
 }
 
 void* mymalloc(size_t size) {
-  //insert_metadata(size);
+  insert_metadata(size);
 
   if (size == 0) {
     return NULL;
@@ -65,7 +87,7 @@ void* mymalloc(size_t size) {
 }
 
 void* mycalloc(size_t nmemb, size_t size) {
-  //insert_metadata(size);
+  insert_metadata(size);
   void* return_pointer = NULL;
 
   if (nmemb == 0 || size == 0) {
@@ -80,29 +102,27 @@ void* mycalloc(size_t nmemb, size_t size) {
   return return_pointer;
 }
 
-void init_head(){
- //head = (free_block_t*)sbrk(sizeof(free_block_t));
- // printf("<!> Init <!> Size of head: %ld\n", sizeof(head));
- head->next = NULL;
- head->size = -1;
+void init_free_head(void* addr) {
+  free_head_init_flag = true;
+  free_head = (free_block_t*)sbrk(sizeof(free_block_t));
+  free_head->addr = addr;
+  free_head->next = NULL;
 }
 
 void myfree(void* ptr) {
-  if (!head_init_flag) { init_head(); }
+  if (!free_head_init_flag) {
+    init_free_head(ptr);
+    return;
+   }
 
-  metadata_block_t* block = (metadata_block_t*)(ptr - WORD);
-  size_t size = block->size;
-
-  free_block_t* current = head;
+  free_block_t* current = free_head;
   while (current->next != NULL) {
     current = current->next;
   }
 
-  //current->next = (free_block_t*)sbrk(sizeof(free_block_t));
-  //current->next->size = size;
-  //current->next->addr = ptr;
-  // current->next->next = NULL;
-  // current->next->prev = current;
+  current->next = (free_block_t*)sbrk(sizeof(free_block_t));
+  current->next->addr = ptr;
+  current->next->next = NULL;
 }
 
 void* myrealloc(void *ptr, size_t size) {
