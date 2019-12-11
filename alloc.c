@@ -42,44 +42,59 @@ void insert_metadata(size_t size) {
   metadata_block_t* current = metadata_head;
 
   while (current->next != NULL) {
+    //printf("Metadata insert size: %ld\n", current->size);
     current = current->next;
   }
 
   current->next = (metadata_block_t*)sbrk(sizeof(metadata_block_t));
-  metadata_head->next->size = size;
-  metadata_head->next->is_free = false;
-  metadata_head->next->next = NULL;
-  metadata_head->next->prev = current;
+  current->next->size = size;
+  current->next->is_free = false;
+  current->next->next = NULL;
+  current->next->prev = current;
 }
 
 void remove_block(free_block_t* free_block, metadata_block_t* metadata_block) {
   metadata_block->prev->next = metadata_block->next;
   metadata_block->next->prev = metadata_block->prev;
-
-
 }
+
+// defragment_free(void* addr){
+//   metadata_block_t* metadata_next = (metadata_block_t*)(addr + sizeof(free_block_t)) - 1;
+//   metadata_block_t* metadata_prev = (metadata_block_t*)metadata_next->prev;
+//   metadata_prev->size += sizeof(free_block_t);
+// }
 
 void* search_free_blocks(size_t size) {
   if (free_head == NULL) { return NULL; }
+
+  printf("<!>NEW SEARCH<!>\n");
+  printf(">\n");
+  printf(">\n");
+
+  printf("Size searched for: %ld\n", size);
+
+  int count = 0;
 
   free_block_t* current = free_head;
 
   while (current->next != NULL) {
     metadata_block_t* current_metadata = current->addr - sizeof(metadata_block_t);
+    //printf("Size to fit: %ld\n", size);
+    //printf("Current metadata size: %ld\n", current_metadata->size);
     if (current_metadata->size >= size) {
       remove_block(current, current_metadata);
-      printf("Poopy!");
+      //defragment_free(current->addr);
+      printf("--> Size match!\n");
       return current_metadata;
     }
-    printf("Big poopy!");
     current = current->next;
   }
-  printf("LOOK-AT-ME!");
+  printf("--> Free search end\n");
   return NULL;
 }
 
 void* mymalloc(size_t size) {
-  insert_metadata(size);
+  printf("Malloced: %ld\n", size);
 
   if (size == 0) {
     return NULL;
@@ -89,6 +104,7 @@ void* mymalloc(size_t size) {
 
   void* free_block = search_free_blocks(size);
   if (free_block == NULL) {
+    insert_metadata(size);
     return sbrk(size);
   }
 
@@ -123,6 +139,8 @@ void myfree(void* ptr) {
     init_free_head(ptr);
     return;
    }
+
+   //printf("<!>Myfree called\n");
 
   free_block_t* current = free_head;
   while (current->next != NULL) {
