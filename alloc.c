@@ -52,20 +52,29 @@ void insert_metadata(size_t size) {
   metadata_head->next->prev = current;
 }
 
-// void remove_block(free_block_t* block) {
-//   block->prev->next = block->next;
-//   block->next->prev = block->prev;
-// }
+void remove_block(free_block_t* free_block, metadata_block_t* metadata_block) {
+  metadata_block->prev->next = metadata_block->next;
+  metadata_block->next->prev = metadata_block->prev;
+
+
+}
 
 void* search_free_blocks(size_t size) {
+  if (free_head == NULL) { return NULL; }
+
   free_block_t* current = free_head;
 
   while (current->next != NULL) {
     metadata_block_t* current_metadata = current->addr - sizeof(metadata_block_t);
     if (current_metadata->size >= size) {
-      return current_metadata + sizeof(metadata_block_t);
+      remove_block(current, current_metadata);
+      printf("Poopy!");
+      return current_metadata;
     }
+    printf("Big poopy!");
+    current = current->next;
   }
+  printf("LOOK-AT-ME!");
   return NULL;
 }
 
@@ -123,6 +132,9 @@ void myfree(void* ptr) {
   current->next = (free_block_t*)sbrk(sizeof(free_block_t));
   current->next->addr = ptr;
   current->next->next = NULL;
+
+  metadata_block_t* metadata = ptr - sizeof(metadata_block_t);
+  metadata->is_free = true;
 }
 
 void* myrealloc(void *ptr, size_t size) {
