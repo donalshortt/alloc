@@ -53,49 +53,52 @@ void insert_metadata(size_t size) {
   current->next->prev = current;
 }
 
-void remove_block(free_block_t* free_block, metadata_block_t* metadata_block) {
-  metadata_block->prev->next = metadata_block->next;
-  metadata_block->next->prev = metadata_block->prev;
+void remove_free_block(free_block_t* next_block, free_block_t* prev_block, free_block_t* current_block) {
+  if (prev_block != NULL) { prev_block->next = next_block; }
+
+  // Enlarge the preceding memory block to include the memory allocated to free
+  // To find the preceding block, we must access the block ahead and grab it's "prev" pointer
 }
 
-// defragment_free(void* addr){
-//   metadata_block_t* metadata_next = (metadata_block_t*)(addr + sizeof(free_block_t)) - 1;
-//   metadata_block_t* metadata_prev = (metadata_block_t*)metadata_next->prev;
-//   metadata_prev->size += sizeof(free_block_t);
-// }
+void* check_for_fit(size_t size, void* addr){
+  metadata_block_t* current_metadata = addr - sizeof(metadata_block_t);
 
-void* search_free_blocks(size_t size) {
-  if (free_head == NULL) { return NULL; }
+  printf("Size to fit: %ld\n", size);
+  printf("The size is: %ld\n", current_metadata->size);
 
-  printf("<!>NEW SEARCH<!>\n");
-  printf(">\n");
-  printf(">\n");
-
-  printf("Size searched for: %ld\n", size);
-
-  int count = 0;
-
-  free_block_t* current = free_head;
-
-  while (current->next != NULL) {
-    metadata_block_t* current_metadata = current->addr - sizeof(metadata_block_t);
-    //printf("Size to fit: %ld\n", size);
-    //printf("Current metadata size: %ld\n", current_metadata->size);
-    if (current_metadata->size >= size) {
-      remove_block(current, current_metadata);
-      //defragment_free(current->addr);
-      printf("--> Size match!\n");
-      return current_metadata;
-    }
-    current = current->next;
+  if (current_metadata->size >= size) {
+    printf("The glove fits :)))\n");
+    current_metadata->is_free = false;
+    return addr;
   }
-  printf("--> Free search end\n");
+
   return NULL;
 }
 
-void* mymalloc(size_t size) {
-  printf("Malloced: %ld\n", size);
+void* search_free_blocks(size_t size) {
+  printf("Search-free passed size: %ld\n", size);
 
+  if (free_head == NULL) { return NULL; }
+
+  free_block_t* current = free_head;
+  free_block_t* prev = NULL;
+  void* free_addr = NULL;
+
+  while (current->next != NULL) {
+    free_addr = check_for_fit(size, current->addr);
+    if (free_addr != NULL) {
+      remove_free_block(current->next, prev, current);
+      return free_addr;
+    }
+
+    prev = current;
+    current = current->next;
+  }
+
+  return check_for_fit(size, current->addr);
+}
+
+void* mymalloc(size_t size) {
   if (size == 0) {
     return NULL;
   } else if ((size % WORD) != 0) {
@@ -105,9 +108,11 @@ void* mymalloc(size_t size) {
   void* free_block = search_free_blocks(size);
   if (free_block == NULL) {
     insert_metadata(size);
+    printf("Malloced: %ld\n", size);
     return sbrk(size);
   }
 
+  //printf("Looking to maloc: %ld\n", (metadata_block_t*)(free_block - sizeof(metadata_block_t))->size);
   return free_block;
 }
 
